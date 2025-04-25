@@ -153,7 +153,7 @@ public class App extends JFrame {
                 Color ranColor = slots[ranRow][ranCol].getBackground();
                 int[] colArray = {ranColor.getRed(), ranColor.getGreen(), ranColor.getBlue()};
                 for(int j = 0; j < colArray.length; j++) {
-                    colArray[j] = slotValue * 150 * randInt(70, 100) / 15000 + 100; // Will break if below 0 / above 255
+                    colArray[j] = slotValue * 150 * randInt(70, 100) / 15000 + 100;
                     if (j == 0) {
                         System.out.print("[");
                     }
