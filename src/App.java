@@ -145,9 +145,9 @@ public class App extends JFrame {
             int ranRow = randInt(0, NUM_ROWS-1);
             int ranCol = randInt(0, NUM_SLOTS-1);
             //int slotValue = Integer.parseInt(slots[ranRow][ranCol].getText());
-            int slotValue = randInt(0, 100);
-            clickedSlot.setText(String.valueOf(slotValue));
             if(!isLocked[ranRow][ranCol]) {
+                int slotValue = randInt(0, 100);
+                clickedSlot.setText(String.valueOf(slotValue));
                 slots[ranRow][ranCol].setText(String.valueOf(slotValue));
                 // Random color of background
                 Color ranColor = slots[ranRow][ranCol].getBackground();
@@ -177,6 +177,7 @@ public class App extends JFrame {
                             slots[k][l].setText("WINNER");
                             slots[k][l].setFont(new Font("Times New Roman", Font.BOLD, 20));
                             slots[k][l].setBackground(new Color(k*5 + 100 % 256, l*5 + 100 % 256, k*l/2 + 100 % 256));
+                            isLocked[k][l] = true;
                         }
                     }
                 }
@@ -204,22 +205,63 @@ public class App extends JFrame {
         /*if(enteredSlot == hoveredOverSlot) { // If handleSlotExited removed, then uncomment
             return;
         }*/
-
-        if(hoveredOverSlot != null) {
-            hoveredOverSlot.setBackground(Color.DARK_GRAY);
+        int row = 0;
+        int col = 0;
+        boolean isFound = false;
+        for (int i = 0; i < NUM_ROWS; i++) {
+            if (isFound) {
+                break;
+            }
+            for (int j = 0; j < NUM_SLOTS; j++) {
+                if (isFound) {
+                    break;
+                }
+                if (slots[i][j] == enteredSlot) {
+                    row = i;
+                    col = j;
+                    isFound = true;
+                }
+            }
         }
 
-        //enteredSlot.setFont(new Font("Arial", Font.PLAIN, 40));
-        enteredSlot.setBackground(new Color(80, 80, 80));
-        System.out.printf("Slot %s HOVERED ON!\n", enteredSlot.getText());
+        if (!isLocked[row][col]) {
+            if (hoveredOverSlot != null) {
+                hoveredOverSlot.setBackground(Color.DARK_GRAY);
+            }
 
-        hoveredOverSlot = enteredSlot;
+            //enteredSlot.setFont(new Font("Arial", Font.PLAIN, 40));
+            enteredSlot.setBackground(new Color(80, 80, 80));
+            System.out.printf("Slot %s HOVERED ON!\n", enteredSlot.getText());
+
+            hoveredOverSlot = enteredSlot;
+        }
     }
 
     private void handleSlotExited(JLabel exitedSlot) {
-        exitedSlot.setBackground(Color.DARK_GRAY);
-        System.out.printf("Slot %s NOT HOVERED OVER!\n", exitedSlot.getText());
 
+        int row = 0;
+        int col = 0;
+        boolean isFound = false;
+        for (int i = 0; i < NUM_ROWS; i++) {
+            if (isFound) {
+                break;
+            }
+            for (int j = 0; j < NUM_SLOTS; j++) {
+                if (isFound) {
+                    break;
+                }
+                if (slots[i][j] == exitedSlot) {
+                    row = i;
+                    col = j;
+                    isFound = true;
+                }
+            }
+        }
+
+        if (!isLocked[row][col]) {
+            exitedSlot.setBackground(Color.DARK_GRAY);
+            System.out.printf("Slot %s NOT HOVERED OVER!\n", exitedSlot.getText());
+        }
         //hoveredNotOverSlot = exitedSlot;
     }
 
