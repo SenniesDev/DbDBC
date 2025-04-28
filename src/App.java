@@ -4,7 +4,6 @@ import java.awt.event.MouseEvent;
 import java.util.Random;
 import javax.swing.*;
 import javax.swing.border.Border;
-import static java.lang.Math.round;
 
 public class App extends JFrame {
 
@@ -14,10 +13,10 @@ public class App extends JFrame {
     private static final int SLOT_HEIGHT = 100;
     private static final int GAP = 10;
 
-    private static final Border UNSELECTED_BORDER = BorderFactory.createLineBorder(new Color(30, 30, 30), 4, false);
+    private static final Border UNSELECTED_BORDER = BorderFactory.createLineBorder(new Color(30, 30, 30), 3, false);
     private static final Border SELECTED_BORDER = BorderFactory.createLineBorder(new Color(200, 200, 200), 5, false); // Change, if it messes with background
     private static final Font BASIC_FONT = new Font("Inter_FXH Bold", Font.PLAIN, 32);
-    private static final int MINIMUM_TO_WIN = (int) round(Math.sqrt(NUM_ROWS*NUM_SLOTS)) + 10;
+    private static final int MINIMUM_TO_WIN = NUM_ROWS*NUM_SLOTS;
     private static final int MINIMUM_TO_LOCK = 99;
 
     private JPanel[] slotPanel;
@@ -28,6 +27,7 @@ public class App extends JFrame {
     private JLabel hoveredOverSlot = null;
     private boolean isLocked[][] = new boolean[NUM_ROWS][NUM_SLOTS];
     private int AMOUNT_OF_WINNERS = 0;
+    private boolean hasWon = false;
 
     public App() {
         setTitle("Basic Slots");
@@ -141,13 +141,15 @@ public class App extends JFrame {
         System.out.printf("Slot %s SELECTED!\n", clickedSlot.getText());
         //System.out.printf("Slot selected: %s\n", selectedSlot.getText()); // Optional
 
-        for(int i = 0; i < randInt(NUM_ROWS*NUM_SLOTS, NUM_ROWS*NUM_SLOTS); i++) {
+        int rndsOfChange = randInt(1, NUM_ROWS*NUM_SLOTS);
+        int i = 0;
+
+        while(!hasWon && i < rndsOfChange) {
             int ranRow = randInt(0, NUM_ROWS-1);
             int ranCol = randInt(0, NUM_SLOTS-1);
             //int slotValue = Integer.parseInt(slots[ranRow][ranCol].getText());
             if(!isLocked[ranRow][ranCol]) {
-                int slotValue = randInt(0, 100);
-                clickedSlot.setText(String.valueOf(slotValue));
+                int slotValue = randInt(0, 100); 
                 slots[ranRow][ranCol].setText(String.valueOf(slotValue));
                 // Random color of background
                 Color ranColor = slots[ranRow][ranCol].getBackground();
@@ -169,7 +171,7 @@ public class App extends JFrame {
                 if(slotValue >= MINIMUM_TO_LOCK) {
                     AMOUNT_OF_WINNERS++;
                     isLocked[ranRow][ranCol] = true;
-                    clickedSlot.setBackground(new Color(250, 220, 50));
+                    slots[ranRow][ranCol].setBackground(new Color(250, 220, 50));
                 }
                 if(AMOUNT_OF_WINNERS >= MINIMUM_TO_WIN) {
                     for(int k = 0; k < NUM_ROWS; k++) {
@@ -178,8 +180,10 @@ public class App extends JFrame {
                             slots[k][l].setFont(new Font("Times New Roman", Font.BOLD, 20));
                             slots[k][l].setBackground(new Color(k*5 + 100 % 256, l*5 + 100 % 256, k*l/2 + 100 % 256));
                             isLocked[k][l] = true;
+                            hasWon = true;
                         }
                     }
+                    break;
                 }
 
                 try {
@@ -198,6 +202,7 @@ public class App extends JFrame {
                     System.out.printf("\n ERROR WAS CORRECTED!!! [%d, %d, %d]\n", colArray[0], colArray[1], colArray[2]);
                 }
             }
+            i++;
         }
     }
 
@@ -223,6 +228,8 @@ public class App extends JFrame {
                 }
             }
         }
+
+        enteredSlot.setBorder(BorderFactory.createLineBorder(new Color(150, 150, 150), 5, false));
 
         if (!isLocked[row][col]) {
             if (hoveredOverSlot != null) {
@@ -257,6 +264,8 @@ public class App extends JFrame {
                 }
             }
         }
+
+        exitedSlot.setBorder(UNSELECTED_BORDER);
 
         if (!isLocked[row][col]) {
             exitedSlot.setBackground(Color.DARK_GRAY);
