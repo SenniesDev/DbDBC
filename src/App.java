@@ -38,10 +38,15 @@ public class App extends JFrame {
     //private static final Font SIDE_FONT = new Font("Inter_FXH Bold", Font.PLAIN, 24);
 
     private JPanel sidePanel;
-    private JPanel bottomMainPanel;
+    private JPanel mainContentArea;
+    private JPanel bottomMainPanelWrapper;
+    private JPanel bottomMiddleMainPanelWrapper;
+    private JPanel perkPanel;
+    private JPanel temporaryFarRight;
+
     private ArrayList<JLabel> sideLabelList;
     private ArrayList<Component> sideLabelListRigidAreas;
-    private JPanel[] slotPanel;
+    private JPanel[] perkSubPanel;
     private JLabel[][] slots;
     private JLabel selectedSlot = null;     // Variable to keep track of the currently selected slot & hovered over slot
 
@@ -65,33 +70,54 @@ public class App extends JFrame {
 
     private void initializeComponents() {
 
-        this.sidePanel = new JPanel();
+        sideLabelList = new ArrayList<>();
+        sideLabelListRigidAreas = new ArrayList<>();
+
+        sidePanel = new JPanel();
         sidePanel.setPreferredSize(new Dimension(SIDEPANEL_WIDTH, getHeight()));
+
         sidePanel.setBackground(COLOR_DARKEST);
         sidePanel.setLayout(new BoxLayout(sidePanel, BoxLayout.Y_AXIS));
         sidePanel.setBorder(BorderFactory.createEmptyBorder(GAP,GAP,GAP,GAP));
-        sideLabelList = new ArrayList<>();
-        sideLabelListRigidAreas = new ArrayList<>();
+
         JLabel initialLabel = createSideLabel(true); // Creates original "Create new label" label
         sidePanel.add(initialLabel);
 
-        bottomMainPanel = new JPanel();
-        bottomMainPanel.setBackground(COLOR_DARKEST);
-        slotPanel = new JPanel[NUM_ROWS];
+        mainContentArea = new JPanel();
+        mainContentArea.setBackground(Color.white);
+        mainContentArea.setLayout(new BorderLayout());
+
+        bottomMainPanelWrapper = new JPanel();
+        bottomMainPanelWrapper.setBackground(Color.yellow);
+        bottomMainPanelWrapper.setLayout(new BorderLayout());
+
+        // Creates a wrapper for the inside of the bottom main panel (currently stretches over the entirety of bottomMainPanel)
+        bottomMiddleMainPanelWrapper = new JPanel();
+        bottomMiddleMainPanelWrapper.setBackground(Color.blue);
+        bottomMiddleMainPanelWrapper.setLayout(new BorderLayout());
+
+        // Creates a (currently invisible) panel on the far right of bottomMiddleMainPanelWrapper
+        temporaryFarRight = new JPanel();
+        temporaryFarRight.setBackground(Color.green);
+        temporaryFarRight.setLayout(new BorderLayout());
+
+        perkPanel = new JPanel();
+        perkPanel.setBackground(COLOR_DARKEST);
+        perkPanel.setLayout(new BoxLayout(perkPanel, BoxLayout.Y_AXIS));
+
+        perkSubPanel = new JPanel[NUM_ROWS];
         slots = new JLabel[NUM_ROWS][NUM_SLOTS];
         for(int i = 0; i < NUM_ROWS; i++) {
-            slotPanel[i] = new JPanel();
-            slotPanel[i].setLayout(new FlowLayout(FlowLayout.CENTER, GAP, GAP));
-            slotPanel[i].setPreferredSize(new Dimension(SLOT_WIDTH*NUM_SLOTS + GAP*5, SLOT_HEIGHT + 2*GAP));
-            slotPanel[i].setBorder(BorderFactory.createEmptyBorder());
-            //slotPanel[i].setBackground(new Color(i * 40/(NUM_ROWS) + 109, i * 30/(NUM_ROWS) + 104, i * 25/(NUM_ROWS) + 104));
-            slotPanel[i].setBackground(COLOR_DARKEST);
+            perkSubPanel[i] = new JPanel();
+            perkSubPanel[i].setLayout(new FlowLayout(FlowLayout.CENTER, GAP, GAP));
+            perkSubPanel[i].setBorder(BorderFactory.createEmptyBorder());
+            perkSubPanel[i].setBackground(COLOR_DARKEST);
         }
 
         for(int i = 0; i < NUM_ROWS; i++) {
             for (int j = 0; j < NUM_SLOTS; j++) {
-                slots[i][j] = createSlot(i, j);
-                slotPanel[i].add(slots[i][j]);
+                slots[i][j] = createSlot(i, j, "Perk");
+                perkSubPanel[i].add(slots[i][j]);
             }
         }
     }
@@ -99,19 +125,18 @@ public class App extends JFrame {
     private void addComponentsToFrame() {
 
         add(this.sidePanel, BorderLayout.WEST);
-        JPanel mainPanel = new JPanel();
-        mainPanel.add(this.bottomMainPanel, BorderLayout.SOUTH);
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        bottomMainPanel.setLayout(new BoxLayout(bottomMainPanel, BoxLayout.Y_AXIS));
+        add(mainContentArea, BorderLayout.CENTER);
+        mainContentArea.add(bottomMainPanelWrapper, BorderLayout.SOUTH);
+        bottomMainPanelWrapper.add(perkPanel, BorderLayout.WEST);
+        bottomMainPanelWrapper.add(bottomMiddleMainPanelWrapper, BorderLayout.CENTER);
+        bottomMainPanelWrapper.add(temporaryFarRight, BorderLayout.EAST);
 
         for(int i = 0; i < NUM_ROWS; i++) {
-            bottomMainPanel.add(slotPanel[i]);
+            perkPanel.add(perkSubPanel[i]);
             if(i < NUM_ROWS - 1) {
-                bottomMainPanel.add(Box.createRigidArea(new Dimension(0, GAP/2)));
+                perkPanel.add(Box.createRigidArea(new Dimension(0, GAP/2)));
             }
         }
-        mainPanel.setBackground(COLOR_DARKEST);
-        add(mainPanel, BorderLayout.CENTER);
     }
 
     private void openSettings(JLabel label) {
@@ -288,12 +313,16 @@ public class App extends JFrame {
         sidePanel.repaint();
     }
 
-    private JLabel createSlot(int row, int column) {
+    private JLabel createSlot(int row, int column, String type) {
         JLabel slot = new JLabel();
         slot.setPreferredSize(new Dimension(SLOT_WIDTH, SLOT_HEIGHT));
         slot.setBorder(UNSELECTED_BORDER); // Start with the unselected border
         slot.setOpaque(true); // For background color to show reliably
-        slot.setText(String.valueOf(row * NUM_SLOTS + column + 1)); // Sets the value of the text
+        if(type == "Perk") {
+            slot.setText(String.valueOf(row * NUM_SLOTS + column + 1)); // Sets the value of the text
+        } else {
+            slot.setText("0");
+        }
         slot.setFont(BASIC_FONT);
         slot.setBackground(COLOR_DARK);
         slot.setForeground(Color.WHITE); // Color of text
