@@ -1,57 +1,91 @@
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Random;
+import java.util.ArrayList;
 import javax.swing.*;
 import javax.swing.border.Border;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class App extends JFrame {
 
-    private static final int NUM_SLOTS = 8;
-    private static final int NUM_ROWS = 8;
+    private static final int NUM_SLOTS = 4;
+    private static final int NUM_ROWS = 4;
     private static final int SLOT_WIDTH = 100;
     private static final int SLOT_HEIGHT = 100;
     private static final int GAP = 10;
+    private static final int SIDEPANEL_WIDTH = 300;
+    private static final String SIDEPANEL_DEFAULT_NAME = "Label";
 
-    private static final Border UNSELECTED_BORDER = BorderFactory.createLineBorder(new Color(30, 30, 30), 3, false);
-    private static final Border SELECTED_BORDER = BorderFactory.createLineBorder(new Color(200, 200, 200), 5, false); // Change, if it messes with background
-    private static final Font BASIC_FONT = new Font("Inter_FXH Bold", Font.PLAIN, 32);
-    private static final int MINIMUM_TO_WIN = NUM_ROWS*NUM_SLOTS;
-    private static final int MINIMUM_TO_LOCK = 99;
+    private static final Color COLOR_DARKEST = new Color (52, 78, 65);
+    private static final Color COLOR_DARK = new Color (58, 90, 64);
+    private static final Color COLOR_AVERAGE = new Color (88, 129, 87);
+    private static final Color COLOR_BRIGHT = new Color (163, 177, 138);
+    private static final Color COLOR_BRIGHTEST = new Color (218, 215, 205);
 
+    //private static final Border UNSELECTED_BORDER = BorderFactory.createLineBorder(new Color(30, 30, 30), 2, false);
+    private static final Border UNSELECTED_BORDER = BorderFactory.createLineBorder(COLOR_AVERAGE, 2, false);
+    // private static final Border HOVERED_BORDER = BorderFactory.createLineBorder(new Color(100, 100, 100), 3, false);
+    private static final Border HOVERED_BORDER = BorderFactory.createLineBorder(COLOR_BRIGHT, 3, false);
+    //private static final Border SELECTED_BORDER = BorderFactory.createLineBorder(new Color(180, 180, 180), 5, false); // Change, if it messes with background
+    private static final Border SELECTED_BORDER = BorderFactory.createLineBorder(COLOR_BRIGHTEST, 5, false); // Change, if it messes with background
+
+    private static final Font BASIC_FONT = new Font("Inter_FXH Bold", Font.PLAIN, (int) Math.round(Math.sqrt(SLOT_WIDTH*SLOT_HEIGHT*5))/5);
+
+    //private static final Font SIDE_FONT = new Font("Inter_FXH Bold", Font.PLAIN, 24);
+
+    private JPanel sidePanel;
+    private JPanel bottomMainPanel;
+    private ArrayList<JLabel> sideLabelList;
+    private ArrayList<Component> sideLabelListRigidAreas;
     private JPanel[] slotPanel;
     private JLabel[][] slots;
+    private JLabel selectedSlot = null;     // Variable to keep track of the currently selected slot & hovered over slot
 
-    // Variable to keep track of the currently selected slot & hovered over slot
-    private JLabel selectedSlot = null;
-    private JLabel hoveredOverSlot = null;
-    private boolean isLocked[][] = new boolean[NUM_ROWS][NUM_SLOTS];
-    private int AMOUNT_OF_WINNERS = 0;
-    private boolean hasWon = false;
+    private Timer singleClickTimer;
+    private JLabel lastClickedLabel = null;     // Tracks which label was clicked last
 
     public App() {
-        setTitle("Basic Slots");
+        setTitle("App window");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setLayout(new BorderLayout()); // 2nd iteration
+        setLayout(new BorderLayout());
 
         initializeComponents();
         addComponentsToFrame();
 
         pack(); // Adjust frame size to fit components
+        setLocationRelativeTo(null);
         setMinimumSize(getSize()); // Prevent resizing than packed size
+        setMaximumSize(getSize());
         setVisible(true);
     }
 
     private void initializeComponents() {
 
+        this.sidePanel = new JPanel();
+        sidePanel.setPreferredSize(new Dimension(SIDEPANEL_WIDTH, getHeight()));
+        sidePanel.setBackground(COLOR_DARKEST);
+        sidePanel.setLayout(new BoxLayout(sidePanel, BoxLayout.Y_AXIS));
+        sidePanel.setBorder(BorderFactory.createEmptyBorder(GAP,GAP,GAP,GAP));
+        sideLabelList = new ArrayList<>();
+        sideLabelListRigidAreas = new ArrayList<>();
+        JLabel initialLabel = createSideLabel(true); // Creates original "Create new label" label
+        sidePanel.add(initialLabel);
+
+        bottomMainPanel = new JPanel();
+        bottomMainPanel.setBackground(COLOR_DARKEST);
         slotPanel = new JPanel[NUM_ROWS];
         slots = new JLabel[NUM_ROWS][NUM_SLOTS];
         for(int i = 0; i < NUM_ROWS; i++) {
             slotPanel[i] = new JPanel();
             slotPanel[i].setLayout(new FlowLayout(FlowLayout.CENTER, GAP, GAP));
-            slotPanel[i].setBorder(BorderFactory.createEmptyBorder(GAP, GAP, GAP, GAP));
-            slotPanel[i].setBackground(new Color(i * 205/(NUM_ROWS) + 40, i * 205/(NUM_ROWS) + 40, i * 185/(NUM_ROWS) + 60));
+            slotPanel[i].setPreferredSize(new Dimension(SLOT_WIDTH*NUM_SLOTS + GAP*5, SLOT_HEIGHT + 2*GAP));
+            slotPanel[i].setBorder(BorderFactory.createEmptyBorder());
+            //slotPanel[i].setBackground(new Color(i * 40/(NUM_ROWS) + 109, i * 30/(NUM_ROWS) + 104, i * 25/(NUM_ROWS) + 104));
+            slotPanel[i].setBackground(COLOR_DARKEST);
         }
 
         for(int i = 0; i < NUM_ROWS; i++) {
@@ -64,32 +98,207 @@ public class App extends JFrame {
 
     private void addComponentsToFrame() {
 
+        add(this.sidePanel, BorderLayout.WEST);
         JPanel mainPanel = new JPanel();
+        mainPanel.add(this.bottomMainPanel, BorderLayout.SOUTH);
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        bottomMainPanel.setLayout(new BoxLayout(bottomMainPanel, BoxLayout.Y_AXIS));
 
         for(int i = 0; i < NUM_ROWS; i++) {
-            mainPanel.add(slotPanel[i]);
+            bottomMainPanel.add(slotPanel[i]);
             if(i < NUM_ROWS - 1) {
-                mainPanel.add(Box.createRigidArea(new Dimension(0, -5)));
+                bottomMainPanel.add(Box.createRigidArea(new Dimension(0, GAP/2)));
             }
         }
-        mainPanel.setBackground(new Color(40, 40, 40));
+        mainPanel.setBackground(COLOR_DARKEST);
         add(mainPanel, BorderLayout.CENTER);
+    }
+
+    private void openSettings(JLabel label) {
+        JDialog settings = new JDialog(this, "Settings", true); // Modal?
+        settings.setLayout(new BorderLayout());
+
+        //The Settings
+        JLabel settings1Label = new JLabel("Name");
+        settings1Label.setFont(new Font("Inter_FXH", Font.PLAIN, 20));
+        settings1Label.setForeground(Color.WHITE);
+
+        JTextField settings1TextField = new JTextField(15);
+        settings1TextField.setPreferredSize(new Dimension(150, 25));
+        settings1TextField.setFont(new Font("Inter_FXH", Font.PLAIN, 18));
+        settings1TextField.setText(label.getText());
+        settings1TextField.setBackground(new Color(230,230,230));
+        settings1TextField.setForeground(new Color(10,10,10));
+
+        JLabel settings2Label = new JLabel("Delete? (test)");
+        settings2Label.setFont(new Font("Inter_FXH", Font.PLAIN, 20));
+        settings2Label.setForeground(Color.WHITE);
+
+        JCheckBox settings2Checkbox = new JCheckBox("Enable feature");
+        settings2Checkbox.setPreferredSize(new Dimension(120, 25));
+        settings2Checkbox.setFont(new Font("Inter_FXH", Font.PLAIN, 18));
+        settings2Checkbox.setSelected(false);
+        settings2Checkbox.setBackground(COLOR_DARK);
+        settings2Checkbox.setForeground(Color.WHITE);
+
+        // Adding all Settings components to the panel
+        JPanel settingsPanel = new JPanel(new GridLayout(0,2,5,5));
+        settingsPanel.setBorder(BorderFactory.createEmptyBorder(GAP,GAP,GAP,GAP));
+        settingsPanel.add(settings1Label);
+        settingsPanel.add(settings1TextField);
+        settingsPanel.add(settings2Label);
+        settingsPanel.add(settings2Checkbox);
+        settingsPanel.setBackground(COLOR_DARK);
+
+        JButton saveButton = new JButton("Save");
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String settings1Value = settings1TextField.getText();
+                boolean setting2Enabled = settings2Checkbox.isSelected();
+                label.setText(settings1Value);
+                if(setting2Enabled) {
+                    removeSideLabel(label);
+                }
+                settings.dispose();
+            }
+        });
+
+        JButton cancelButton = new JButton("Cancel");
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                settings.dispose();
+            }
+        });
+
+        // Adding both panels (with settings and buttons (Cancel / Save) to Settings)
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+        buttonPanel.setBackground(COLOR_DARK);
+
+        settings.add(settingsPanel, BorderLayout.CENTER);
+        settings.add(buttonPanel, BorderLayout.SOUTH);
+
+        settings.pack();
+        settings.setLocationRelativeTo(this);
+        settings.setVisible(true);
+    }
+
+    private JLabel createSideLabel(boolean isCreator) {
+        JLabel label = new JLabel();
+        label.setPreferredSize(new Dimension(SIDEPANEL_WIDTH - 2*GAP, 24 + GAP*2));
+        label.setMaximumSize(new Dimension(SIDEPANEL_WIDTH - 2*GAP, 24 + GAP*2));
+        //label.setBorder(UNSELECTED_BORDER);
+        label.setOpaque(true);
+        sideLabelList.add(label);
+        int index = sideLabelList.indexOf(label);
+        label.setBorder(BorderFactory.createLineBorder(COLOR_AVERAGE, 2, true));
+
+        if(isCreator) {
+            label.setText("Create new " + SIDEPANEL_DEFAULT_NAME);
+            label.setFont(new Font("Inter_FXH", Font.PLAIN, 24));
+        } else {
+            label.setText(SIDEPANEL_DEFAULT_NAME + " " + sideLabelList.indexOf(label)); // should set the text of current index
+            label.setFont(new Font("Inter_FXH", Font.PLAIN, 20));
+            sideLabelListRigidAreas.add(Box.createRigidArea(new Dimension(0, GAP/2)));
+            sidePanel.add(sideLabelListRigidAreas.getLast());
+        }
+        Color labelColor = new Color(COLOR_DARK.getRed() + index * 2, COLOR_DARK.getGreen(), COLOR_DARK.getBlue() + index * 5);
+        label.setBackground(labelColor);
+        label.setForeground(new Color(230,230,230));
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        label.setVerticalAlignment(SwingConstants.CENTER);
+        sidePanel.add(label);
+
+        System.out.print("[ ");
+        int i = 0;
+        while(i < sideLabelList.size()) {
+            System.out.printf("%s", sideLabelList.get(i).getText());
+            i++;
+            if(i < sideLabelList.size()) {
+                System.out.print(", ");
+            }
+        }
+        System.out.print(" ]\n");
+
+        label.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) { // could use a flag/delay approach instead
+                if(isCreator) {
+                    //sideLabelList.add(createSideLabel(false));
+                    createSideLabel(false);
+                    sidePanel.revalidate();
+                    sidePanel.repaint(); // updates the entire table
+                } else {
+                    if(e.getClickCount() == 1) {
+                        singleClickTimer = new Timer();
+                        lastClickedLabel = label;
+                        singleClickTimer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                if(lastClickedLabel == label) {
+                                    System.out.print("\nSingle click\n"); // Should switch to that current build
+                                    lastClickedLabel = null;
+                                }
+                            }
+                        }, 400); // in milliseconds
+                    } else if (e.getClickCount() == 2) {
+                        if(singleClickTimer != null) {
+                                singleClickTimer.cancel();
+                                singleClickTimer = null;
+                                lastClickedLabel = null;
+                            System.out.print("Double click\n");
+                            openSettings(label);
+                        }
+                    }
+                }
+            }
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                label.setBackground(labelColor.brighter());
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                label.setBackground(labelColor);
+            }
+        });
+
+        return label;
+    }
+
+    private void removeSideLabel(JLabel label) {
+        sidePanel.remove(sideLabelListRigidAreas.get(sideLabelList.indexOf(label)-1));
+        sideLabelListRigidAreas.remove(sideLabelList.indexOf(label)-1);
+        int index = sideLabelList.indexOf(label);
+        while(index < sideLabelList.size()) {
+            if(sideLabelList.get(index).getText().contains(SIDEPANEL_DEFAULT_NAME + " " + index)) {
+                sideLabelList.get(index).setText(SIDEPANEL_DEFAULT_NAME + " " + (index-1));
+                //System.out.printf("Label[%d] was color (%d, %d, %d)\n", index-1, sideLabelList.get(index).getBackground().getRed(), sideLabelList.get(index).getBackground().getGreen(), sideLabelList.get(index).getBackground().getBlue());
+                Color labelColor = new Color(COLOR_DARK.getRed() + (index-1) * 2, COLOR_DARK.getGreen(), COLOR_DARK.getBlue() + (index-1) * 5);
+                sideLabelList.get(index).setBackground(labelColor);
+                //System.out.printf("Label[%d] is color (%d, %d, %d)\n", index-1, labelColor.getRed(), labelColor.getGreen(), labelColor.getBlue());
+            }
+            index++;
+        }
+        sidePanel.remove(label);
+        sideLabelList.remove(label);
+        sidePanel.revalidate();
+        sidePanel.repaint();
     }
 
     private JLabel createSlot(int row, int column) {
         JLabel slot = new JLabel();
         slot.setPreferredSize(new Dimension(SLOT_WIDTH, SLOT_HEIGHT));
-        // Start with the unselected border
-        slot.setBorder(UNSELECTED_BORDER);
+        slot.setBorder(UNSELECTED_BORDER); // Start with the unselected border
         slot.setOpaque(true); // For background color to show reliably
-        slot.setBackground(Color.DARK_GRAY);
-        slot.setForeground(new Color(244, 201, 0)); // Color of text
+        slot.setText(String.valueOf(row * NUM_SLOTS + column + 1)); // Sets the value of the text
+        slot.setFont(BASIC_FONT);
+        slot.setBackground(COLOR_DARK);
+        slot.setForeground(Color.WHITE); // Color of text
         slot.setHorizontalAlignment(SwingConstants.CENTER);
         slot.setVerticalAlignment(SwingConstants.CENTER);
-        slot.setText(String.valueOf(row * NUM_SLOTS + column + 1)); // Sets the value of the text
-        //slot.setText(String.valueOf(row + " - " + column)); // Sets the value of the text
-        slot.setFont(BASIC_FONT);
 
         // Add a MouseListener to handle clicks
         slot.addMouseListener(new MouseAdapter() {
@@ -122,157 +331,35 @@ public class App extends JFrame {
     // Method to handle the logic when a slot is clicked
     private void handleSlotClick(JLabel clickedSlot) {
 
-        int totalCounter = AMOUNT_OF_WINNERS;
-
         if (clickedSlot == selectedSlot) {
             selectedSlot = null;
             clickedSlot.setBorder(UNSELECTED_BORDER);
-
-            //System.out.printf("Slot %s UNSELECTED!\n", clickedSlot.getText());
-            //return;
         }
-
         if (selectedSlot != null) {
             selectedSlot.setBorder(UNSELECTED_BORDER); // If another slot is selected, we unselect the previous slot
         }
-
         clickedSlot.setBorder(SELECTED_BORDER);
         selectedSlot = clickedSlot;
-        System.out.printf("Slot %s SELECTED!\n", clickedSlot.getText());
-        //System.out.printf("Slot selected: %s\n", selectedSlot.getText()); // Optional
 
-        int rndsOfChange = randInt(1, NUM_ROWS*NUM_SLOTS);
-        int i = 0;
-
-        while(!hasWon && i < rndsOfChange) {
-            int ranRow = randInt(0, NUM_ROWS-1);
-            int ranCol = randInt(0, NUM_SLOTS-1);
-            //int slotValue = Integer.parseInt(slots[ranRow][ranCol].getText());
-            if(!isLocked[ranRow][ranCol]) {
-                int slotValue = randInt(0, 100); 
-                slots[ranRow][ranCol].setText(String.valueOf(slotValue));
-                // Random color of background
-                Color ranColor = slots[ranRow][ranCol].getBackground();
-                int[] colArray = {ranColor.getRed(), ranColor.getGreen(), ranColor.getBlue()};
-                for(int j = 0; j < colArray.length; j++) {
-                    colArray[j] = slotValue * 150 * randInt(70, 100) / 15000 + 100;
-                    if (j == 0) {
-                        System.out.print("[");
-                    }
-                    System.out.printf("%d", colArray[j]);
-                    if (j != 2) {
-                        System.out.print(", ");
-                    } else {
-                        System.out.print("]");
-                    }
-                }
-                System.out.printf(" : SLOT [%d][%d]\n", ranRow, ranCol);
-
-                if(slotValue >= MINIMUM_TO_LOCK) {
-                    AMOUNT_OF_WINNERS++;
-                    isLocked[ranRow][ranCol] = true;
-                    slots[ranRow][ranCol].setBackground(new Color(250, 220, 50));
-                }
-                if(AMOUNT_OF_WINNERS >= MINIMUM_TO_WIN) {
-                    for(int k = 0; k < NUM_ROWS; k++) {
-                        for(int l = 0; l < NUM_SLOTS; l++) {
-                            slots[k][l].setText("WINNER");
-                            slots[k][l].setFont(new Font("Times New Roman", Font.BOLD, 20));
-                            slots[k][l].setBackground(new Color(k*5 + 100 % 256, l*5 + 100 % 256, k*l/2 + 100 % 256));
-                            isLocked[k][l] = true;
-                            hasWon = true;
-                        }
-                    }
-                    break;
-                }
-
-                try {
-                    slots[ranRow][ranCol].setBackground(new Color(colArray[0], colArray[1], colArray[2]));
-                } catch (Exception e) {
-                    for(int k = 0; k < 3; k++) {
-                        if(colArray[k] < 0) {
-                            colArray[k] = (-1)*colArray[k];
-                            System.out.printf("\n ERROR OCCURRED - %d SMALLER THAN 0 \n", colArray[k]);
-                        } else if (colArray[k] > 255) {
-                            colArray[k] -= colArray[k] - 255;
-                            System.out.printf("\n ERROR OCCURRED - %d LARGER THAN 255 \n", colArray[k]);
-                        }
-                    }
-                    slots[ranRow][ranCol].setBackground(new Color(colArray[0], colArray[1], colArray[2]));
-                    System.out.printf("\n ERROR WAS CORRECTED!!! [%d, %d, %d]\n", colArray[0], colArray[1], colArray[2]);
-                }
-            }
-            i++;
-        }
     }
 
     private void handleSlotEntered(JLabel enteredSlot) {
-        /*if(enteredSlot == hoveredOverSlot) { // If handleSlotExited removed, then uncomment
-            return;
-        }*/
-        int row = 0;
-        int col = 0;
-        boolean isFound = false;
-        for (int i = 0; i < NUM_ROWS; i++) {
-            if (isFound) {
-                break;
-            }
-            for (int j = 0; j < NUM_SLOTS; j++) {
-                if (isFound) {
-                    break;
-                }
-                if (slots[i][j] == enteredSlot) {
-                    row = i;
-                    col = j;
-                    isFound = true;
-                }
-            }
+
+        if(enteredSlot != selectedSlot) {
+            enteredSlot.setBorder(HOVERED_BORDER);
         }
-
-        enteredSlot.setBorder(BorderFactory.createLineBorder(new Color(150, 150, 150), 5, false));
-
-        if (!isLocked[row][col]) {
-            if (hoveredOverSlot != null) {
-                hoveredOverSlot.setBackground(Color.DARK_GRAY);
-            }
-
-            //enteredSlot.setFont(new Font("Arial", Font.PLAIN, 40));
-            enteredSlot.setBackground(new Color(80, 80, 80));
-            System.out.printf("Slot %s HOVERED ON!\n", enteredSlot.getText());
-
-            hoveredOverSlot = enteredSlot;
-        }
+        enteredSlot.setBackground(COLOR_DARK.brighter());
     }
 
     private void handleSlotExited(JLabel exitedSlot) {
 
-        int row = 0;
-        int col = 0;
-        boolean isFound = false;
-        for (int i = 0; i < NUM_ROWS; i++) {
-            if (isFound) {
-                break;
-            }
-            for (int j = 0; j < NUM_SLOTS; j++) {
-                if (isFound) {
-                    break;
-                }
-                if (slots[i][j] == exitedSlot) {
-                    row = i;
-                    col = j;
-                    isFound = true;
-                }
-            }
+        if(exitedSlot != selectedSlot) {
+            exitedSlot.setBorder(UNSELECTED_BORDER);
         }
-
-        exitedSlot.setBorder(UNSELECTED_BORDER);
-
-        if (!isLocked[row][col]) {
-            exitedSlot.setBackground(Color.DARK_GRAY);
-            System.out.printf("Slot %s NOT HOVERED OVER!\n", exitedSlot.getText());
-        }
-        //hoveredNotOverSlot = exitedSlot;
+        exitedSlot.setBackground(COLOR_DARK);
     }
+
+    // ------------------------------------------------------
 
     private int randInt(int min, int max) {
         Random rand = new Random();
