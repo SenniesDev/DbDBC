@@ -1,6 +1,8 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Random;
@@ -43,6 +45,8 @@ public class App extends JFrame {
     private JPanel bottomMiddleMainPanelWrapper;
     private JPanel perkPanel;
     private JPanel temporaryFarRight;
+    private JPanel temporaryFarRightSub[];
+    private JLabel temporaryFarRightItems[];
 
     private ArrayList<JLabel> sideLabelList;
     private ArrayList<Component> sideLabelListRigidAreas;
@@ -98,8 +102,22 @@ public class App extends JFrame {
 
         // Creates a (currently invisible) panel on the far right of bottomMiddleMainPanelWrapper
         temporaryFarRight = new JPanel();
-        temporaryFarRight.setBackground(Color.green);
-        temporaryFarRight.setLayout(new BorderLayout());
+        temporaryFarRight.setBackground(COLOR_DARKEST);
+        temporaryFarRight.setLayout(new BoxLayout(temporaryFarRight, BoxLayout.Y_AXIS));
+
+        temporaryFarRightSub = new JPanel[2];
+        temporaryFarRightItems = new JLabel[temporaryFarRightSub.length];
+        temporaryFarRight.add(Box.createRigidArea(new Dimension(1, 20)));
+        for(int i = 0; i < temporaryFarRightSub.length; i++) {
+            temporaryFarRightSub[i] = new JPanel();
+            temporaryFarRightSub[i].setLayout(new FlowLayout(FlowLayout.CENTER, GAP, GAP));
+            temporaryFarRightSub[i].setBorder(BorderFactory.createEmptyBorder());
+            temporaryFarRightSub[i].setBackground(COLOR_DARKEST);
+            temporaryFarRightItems[i] = createSlot(i, 0, "MAP/KILLER");
+            //temporaryFarRightSub[i].setPreferredSize(new Dimension(temporaryFarRightItems[i].getWidth() + GAP, getHeight()));
+            temporaryFarRightSub[i].add(temporaryFarRightItems[i]);
+            temporaryFarRight.add(temporaryFarRightSub[i]);
+        }
 
         perkPanel = new JPanel();
         perkPanel.setBackground(COLOR_DARKEST);
@@ -179,12 +197,7 @@ public class App extends JFrame {
         saveButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String settings1Value = settings1TextField.getText();
-                boolean setting2Enabled = settings2Checkbox.isSelected();
-                label.setText(settings1Value);
-                if(setting2Enabled) {
-                    removeSideLabel(label);
-                }
+                saveSettings(label, settings1TextField, settings2Checkbox);
                 settings.dispose();
             }
         });
@@ -196,6 +209,15 @@ public class App extends JFrame {
                 settings.dispose();
             }
         });
+
+        /*
+        add(new KeyListener() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                saveSettings(label, settings1TextField, settings2Checkbox);
+            }
+        });
+        */
 
         // Adding both panels (with settings and buttons (Cancel / Save) to Settings)
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -228,7 +250,7 @@ public class App extends JFrame {
             label.setText(SIDEPANEL_DEFAULT_NAME + " " + sideLabelList.indexOf(label)); // should set the text of current index
             label.setFont(new Font("Inter_FXH", Font.PLAIN, 20));
             sideLabelListRigidAreas.add(Box.createRigidArea(new Dimension(0, GAP/2)));
-            sidePanel.add(sideLabelListRigidAreas.getLast());
+            sidePanel.add(sideLabelListRigidAreas.get(sideLabelList.indexOf(label)-1));
         }
         Color labelColor = new Color(COLOR_DARK.getRed() + index * 2, COLOR_DARK.getGreen(), COLOR_DARK.getBlue() + index * 5);
         label.setBackground(labelColor);
@@ -300,10 +322,8 @@ public class App extends JFrame {
         while(index < sideLabelList.size()) {
             if(sideLabelList.get(index).getText().contains(SIDEPANEL_DEFAULT_NAME + " " + index)) {
                 sideLabelList.get(index).setText(SIDEPANEL_DEFAULT_NAME + " " + (index-1));
-                //System.out.printf("Label[%d] was color (%d, %d, %d)\n", index-1, sideLabelList.get(index).getBackground().getRed(), sideLabelList.get(index).getBackground().getGreen(), sideLabelList.get(index).getBackground().getBlue());
                 Color labelColor = new Color(COLOR_DARK.getRed() + (index-1) * 2, COLOR_DARK.getGreen(), COLOR_DARK.getBlue() + (index-1) * 5);
                 sideLabelList.get(index).setBackground(labelColor);
-                //System.out.printf("Label[%d] is color (%d, %d, %d)\n", index-1, labelColor.getRed(), labelColor.getGreen(), labelColor.getBlue());
             }
             index++;
         }
@@ -322,6 +342,7 @@ public class App extends JFrame {
             slot.setText(String.valueOf(row * NUM_SLOTS + column + 1)); // Sets the value of the text
         } else {
             slot.setText("0");
+            slot.setPreferredSize(new Dimension(SLOT_WIDTH*2, SLOT_HEIGHT*2));
         }
         slot.setFont(BASIC_FONT);
         slot.setBackground(COLOR_DARK);
@@ -356,6 +377,16 @@ public class App extends JFrame {
 
         return slot;
     }
+
+    private void saveSettings(JLabel label, JTextField settings1TextField, JCheckBox settings2Checkbox) {
+        String settings1Value = settings1TextField.getText();
+        boolean setting2Enabled = settings2Checkbox.isSelected();
+        label.setText(settings1Value);
+        if(setting2Enabled) {
+            removeSideLabel(label);
+        }        
+    }
+
 
     // Method to handle the logic when a slot is clicked
     private void handleSlotClick(JLabel clickedSlot) {
