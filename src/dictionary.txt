@@ -1,16 +1,3 @@
-slotCreation dictionary:
-0 - perks in build
-1 - RESERVED offerings
-2 - RESERVED items
-3 - RESERVED addons
-4 - RESERVED surv icons
-5 - map
-6 - killer
-7 - selection perks
-8 - selection surv???
-
-refactor:
-
 0 - survivor icon,
 1 - survivor perks,
 2 - survivor items,
